@@ -1,0 +1,8 @@
+# OS / editor cruft
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local slicer output
+*.gcode
+*.3mf.bak

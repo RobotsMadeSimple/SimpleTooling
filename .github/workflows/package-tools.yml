@@ -1,0 +1,83 @@
+name: Package tool print files
+
+# On every push to main, detect which top-level module directories changed and
+# (re)package each changed module's print files into its own rolling release.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}  # manual run repackages every module
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with LFS)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Determine changed modules
+        id: changed
+        run: |
+          set -euo pipefail
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${before}^{commit}" 2>/dev/null; then
+            # First push / new branch / unavailable base: diff against the empty tree so every module is packaged.
+            base="$(git hash-object -t tree /dev/null)"
+          else
+            base="$before"
+          fi
+          diff_range="$base ${{ github.sha }}"
+          echo "Diffing: $diff_range"
+
+          # Top-level dir of each changed path, excluding infra dirs and root-level files.
+          modules="$(git diff --name-only $diff_range \
+            | awk -F/ 'NF>1 {print $1}' \
+            | grep -vE '^\.(git|github)$' \
+            | sort -u || true)"
+
+          # Keep only dirs that still exist and actually contain print files.
+          kept=""
+          while IFS= read -r m; do
+            [ -z "$m" ] && continue
+            if [ -d "$m/Print Files" ]; then
+              kept="$kept$m"$'\n'
+            fi
+          done <<< "$modules"
+
+          echo "Changed modules:"
+          printf '%s' "$kept"
+          {
+            echo "modules<<EOF"
+            printf '%s' "$kept"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Package and publish releases
+        if: steps.changed.outputs.modules != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r module; do
+            [ -z "$module" ] && continue
+            echo "::group::Packaging $module"
+            zip_name="${module}-print-files.zip"
+            (cd "$module" && zip -r "../$zip_name" "Print Files")
+
+            tag="$module"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "Updating existing release $tag"
+              gh release upload "$tag" "$zip_name" --clobber
+            else
+              echo "Creating release $tag"
+              gh release create "$tag" "$zip_name" \
+                --title "$module print files" \
+                --notes "Latest print files for the **$module** module. This release is updated automatically whenever the \`$module/\` directory changes."
+            fi
+            echo "::endgroup::"
+          done <<< "${{ steps.changed.outputs.modules }}"
