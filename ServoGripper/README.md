@@ -3,7 +3,9 @@
 Rack-and-pinion parallel gripper for ASTRO. A short-body NEMA 17 stepper turns a GT2 20-tooth pulley that drives
 two opposed racks, opening and closing the fingers together.
 
-**Download:** [ServoGripper-print-files.zip](https://github.com/RobotsMadeSimple/SimpleTooling/releases/download/ServoGripper/ServoGripper-print-files.zip)
+**Downloads:**
+- Print files: [ServoGripper-print-files.zip](https://github.com/RobotsMadeSimple/SimpleTooling/releases/download/ServoGripper/ServoGripper-print-files.zip)
+- Assembled STEP: [ServoGripper-step-files.zip](https://github.com/RobotsMadeSimple/SimpleTooling/releases/download/ServoGripper/ServoGripper-step-files.zip) (`CAD/Servo Gripper Assembled.step`)
 
 ## Printed parts
 

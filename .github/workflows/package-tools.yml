@@ -1,7 +1,11 @@
 name: Package tool print files
 
-# On every push to main, detect which top-level module directories changed and
-# (re)package each changed module's print files into its own rolling release.
+# On every push to main, detect which top-level tool directories changed and
+# (re)package each changed tool into its own rolling release (tag = tool name):
+#   <Tool>-print-files.zip  <- <Tool>/Print Files/
+#   <Tool>-step-files.zip   <- <Tool>/CAD/*.step (when the tool has any)
+# Zip names stay fixed so the website can link to releases/download/<Tool>/<name>.zip;
+# VERSION.txt inside each zip records the commit it was built from.
 on:
   push:
     branches: [main]
@@ -14,11 +18,11 @@ jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (with LFS)
+      # LFS files are pulled per tool below: only what goes into the zips
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          lfs: true
 
       - name: Determine changed modules
         id: changed
@@ -66,18 +70,34 @@ jobs:
           while IFS= read -r module; do
             [ -z "$module" ] && continue
             echo "::group::Packaging $module"
-            zip_name="${module}-print-files.zip"
-            (cd "$module" && zip -r "../$zip_name" "Print Files")
+            git lfs pull --include="$module/Print Files/**,$module/CAD/*.step"
+            if grep -rlI "^version https://git-lfs.github.com/spec/v1" "$module/Print Files" "$module/CAD" 2>/dev/null; then
+              echo "::error::Files above are still LFS pointers"
+              exit 1
+            fi
+            echo "$module $(git rev-parse --short HEAD) $(date -u +%Y-%m-%d)" > VERSION.txt
+
+            assets=("${module}-print-files.zip")
+            (cd "$module" && zip -r "../${module}-print-files.zip" "Print Files")
+            zip -j "${module}-print-files.zip" VERSION.txt
+            shopt -s nullglob
+            steps=("$module"/CAD/*.step)
+            shopt -u nullglob
+            if [ ${#steps[@]} -gt 0 ]; then
+              zip -j "${module}-step-files.zip" "${steps[@]}" VERSION.txt
+              assets+=("${module}-step-files.zip")
+            fi
 
             tag="$module"
             if gh release view "$tag" >/dev/null 2>&1; then
               echo "Updating existing release $tag"
-              gh release upload "$tag" "$zip_name" --clobber
+              gh release upload "$tag" "${assets[@]}" --clobber
             else
               echo "Creating release $tag"
-              gh release create "$tag" "$zip_name" \
-                --title "$module print files" \
-                --notes "Latest print files for the **$module** module. This release is updated automatically whenever the \`$module/\` directory changes."
+              gh release create "$tag" "${assets[@]}" \
+                --title "$module" \
+                --notes "Latest print files (and assembled STEP, where provided) for **$module**. This release is updated automatically whenever the \`$module/\` directory changes."
             fi
+            rm -f "${module}"-*.zip VERSION.txt
             echo "::endgroup::"
           done <<< "${{ steps.changed.outputs.modules }}"

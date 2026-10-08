@@ -18,6 +18,7 @@ can be built on its own.
 <ToolName>/
   README.md           # parts list, hardware, mounting options
   Print Files/        # STL / CAD files to print or machine
+  CAD/                # assembled STEP file (optional)
 ```
 
 ## Git LFS
@@ -40,7 +41,9 @@ cloning the repo or installing LFS.
 
 Packaging is automated: on every push to `main`, a GitHub Action detects which tool directories changed and
 rebuilds **only those** releases. Each tool has one rolling release tagged with the tool name (e.g.
-`ServoGripper`), whose ZIP asset (`ServoGripper-print-files.zip`) is overwritten with the latest print files.
+`ServoGripper`), whose ZIP assets are overwritten with the latest files: `<Tool>-print-files.zip` (the `Print Files/` folder) and,
+when the tool has an assembled STEP in `CAD/`, `<Tool>-step-files.zip`. Each zip has a `VERSION.txt` naming the
+commit it was built from.
 
 ## Adding a tool
 
