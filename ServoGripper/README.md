@@ -22,7 +22,7 @@ two opposed racks, opening and closing the fingers together.
 | File | Qty | Extra hardware |
 |------|-----|----------------|
 | `Mounting Options/Side Tool Mounting.stl` | 1 | none |
-| `Mounting Options/Top Down Bracket.stl` | 1 | 2x M3x12 SHCS |
+| `Mounting Options/Top Down Bracket.stl` | 1 | 4x M3x12 SHCS |
 
 ## Hardware
 
@@ -33,6 +33,6 @@ two opposed racks, opening and closing the fingers together.
 | M3x8 socket head cap screw | 4 |
 | M3x10 socket head cap screw | 8 |
 | M3x16 socket head cap screw | 4 |
-| M3x12 socket head cap screw (Top Down Bracket only) | 2 |
+| M3x12 socket head cap screw (Top Down Bracket only) | 4 |
 
 STL units are millimetres.
